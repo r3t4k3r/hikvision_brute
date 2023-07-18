@@ -83,6 +83,19 @@ type Target struct {
 	maxTries int    // max tries
 }
 
+type Result struct {
+	host   string
+	port   int
+	result int8 // 0 - valid, 1 - invalid, 2 - err, 3 - unknown
+}
+
+const (
+	ResultValid   int8 = 0
+	ResultInvalid int8 = 1
+	ResultErr     int8 = 2
+	ResultUnknown int8 = 3
+)
+
 func (target Target) send(url string, request_data interface{}) (HttpResponse, error) {
 	time.Sleep(time.Duration(target.delay) * time.Millisecond)
 	method := http.MethodPut
@@ -135,24 +148,22 @@ func (target Target) send(url string, request_data interface{}) (HttpResponse, e
 	return HttpResponse{resp.StatusCode, string(bytes)}, nil
 }
 
-func (target Target) checkTarget() {
+func (target Target) checkTarget() Result {
 	resp, err := target.send("/SDK/webLanguage", ">webLib/a1")
 	if err != nil || resp.code == 404 {
-		fmt.Println(colfmt.err.Sprint("*ERR*"), target.host, target.port)
-		return
+		return Result{target.host, target.port, ResultErr}
 	}
 
 	resp, err = target.send("/a1", nil)
 	if err != nil {
-		fmt.Println(colfmt.err.Sprint("*ERR"), target.host, target.port)
-		return
+		return Result{target.host, target.port, ResultErr}
 	}
 	if resp.code == 200 {
-		fmt.Println(colfmt.good.Sprint("GOOD"), target.host, target.port)
+		return Result{target.host, target.port, ResultValid}
 	} else if resp.code == 500 {
-		fmt.Println(colfmt.info.Sprint("UNKNOWN"), target.host, target.port)
+		return Result{target.host, target.port, ResultUnknown}
 	} else {
-		fmt.Println(colfmt.bad.Sprint("BAD"), target.host, target.port)
+		return Result{target.host, target.port, ResultInvalid}
 	}
 }
 
@@ -164,6 +175,8 @@ var colfmt = &ColorPrint{
 	good: color.New(color.BgHiGreen),
 	bad:  color.New(color.BgHiRed),
 }
+var savedResults = 0
+var targetsCount = 0
 
 func printColoredErr(err error) {
 	fmt.Println(colfmt.err.Sprint(fmt.Sprintf("%T:", err)), err)
@@ -225,25 +238,91 @@ func parseTargets(args ProgramArgs) ([]Target, error) {
 	return targets, nil
 }
 
-func bruteThread(targetChan chan Target, wg *sync.WaitGroup, threadNumber int) {
-	colfmt.info.Printf("thread %v started\n", threadNumber)
+func bruteThread(targetChan chan Target, resultChan chan Result, wg *sync.WaitGroup, threadNumber int) {
+	fmt.Println(colfmt.info.Sprint("INFO"), "thread", threadNumber, "started")
 	for {
 		select {
 		case target := <-targetChan: // get target from chan
-			target.checkTarget()
-		case <-time.After(3 * time.Second): // timeout 3 seconds
+			resultChan <- target.checkTarget()
+		case <-time.After(1 * time.Second): // timeout 3 seconds
 			wg.Done()
-			colfmt.info.Printf("thread %v finished\n", threadNumber)
+			fmt.Println(colfmt.info.Sprint("INFO"), "thread", threadNumber, "finished")
 			return
 		}
 	}
 }
 
 func fillTargetChan(targets *[]Target, targetChan chan Target, wg *sync.WaitGroup) {
+	fmt.Println(colfmt.info.Sprint("INFO"), "fillTargetChan Thread started")
 	for _, target := range *targets {
 		targetChan <- target
 	}
+	fmt.Println(colfmt.info.Sprint("INFO"), "fillTargetChan Thread finished")
 	wg.Done()
+}
+
+func addStringToFile(filepath string, data string) {
+	myfile, _ := os.OpenFile(filepath, os.O_APPEND|os.O_WRONLY, 0600)
+	fmt.Fprint(myfile, data)
+	myfile.Close()
+}
+func createFileIfNotExists(filepath string) {
+	myfile, _ := os.Create(filepath)
+	myfile.Close()
+}
+
+func writeResultToFiles(resultChan chan Result, wg *sync.WaitGroup, programArgs ProgramArgs) {
+	fmt.Println(colfmt.info.Sprint("INFO"), "writeResultToFiles Thread started")
+	var isGoodFileUse, isBadFileUse, isErrFileUse, isUnknownFileUse bool
+	// creating files if not exists
+	if *programArgs.goodfile != "" {
+		createFileIfNotExists(*programArgs.goodfile)
+		isGoodFileUse = true
+	}
+	if *programArgs.badfile != "" {
+		createFileIfNotExists(*programArgs.badfile)
+		isBadFileUse = true
+	}
+	if *programArgs.errfile != "" {
+		createFileIfNotExists(*programArgs.errfile)
+		isErrFileUse = true
+	}
+	if *programArgs.unknownfile != "" {
+		createFileIfNotExists(*programArgs.unknownfile)
+		isUnknownFileUse = true
+	}
+	for {
+		if savedResults == targetsCount {
+			fmt.Println(colfmt.info.Sprint("INFO"), "writeResultToFiles Thread finished")
+			wg.Done()
+			return
+		} else {
+			result := <-resultChan
+			savedResults += 1
+			switch result.result {
+			case ResultValid:
+				fmt.Println(colfmt.good.Sprint("GOOD"), result.host, result.port)
+				if isGoodFileUse {
+					addStringToFile(*programArgs.goodfile, fmt.Sprintf("%v:%v\n", result.host, result.port))
+				}
+			case ResultInvalid:
+				fmt.Println(colfmt.bad.Sprint("BAD"), result.host, result.port)
+				if isBadFileUse {
+					addStringToFile(*programArgs.badfile, fmt.Sprintf("%v:%v\n", result.host, result.port))
+				}
+			case ResultErr:
+				fmt.Println(colfmt.err.Sprint("*ERR*"), result.host, result.port)
+				if isErrFileUse {
+					addStringToFile(*programArgs.errfile, fmt.Sprintf("%v:%v\n", result.host, result.port))
+				}
+			case ResultUnknown:
+				fmt.Println(colfmt.info.Sprint("UNKNOWN"), result.host, result.port)
+				if isUnknownFileUse {
+					addStringToFile(*programArgs.unknownfile, fmt.Sprintf("%v:%v\n", result.host, result.port))
+				}
+			}
+		}
+	}
 }
 
 func main() {
@@ -271,18 +350,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Print("\nTargets count: ", colfmt.ok.Sprint(len(targets)), "\n\n")
+	targetsCount = len(targets) // change global variable
+	fmt.Print("\nTargets count: ", colfmt.ok.Sprint(targetsCount), "\n\n")
 
 	wg := sync.WaitGroup{}
 	// calculating threads count
-	wg.Add(1 + *programArgs.threads)
+	wg.Add(2 + *programArgs.threads)
 	targetChan := make(chan Target)
+	resultChan := make(chan Result)
 
 	// add all targets to chan
 	go fillTargetChan(&targets, targetChan, &wg)
+	go writeResultToFiles(resultChan, &wg, programArgs)
 	// starting threads
 	for i := 0; i < *programArgs.threads; i++ {
-		go bruteThread(targetChan, &wg, i+1)
+		go bruteThread(targetChan, resultChan, &wg, i+1)
 	}
 	wg.Wait()
 }
