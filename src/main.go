@@ -299,24 +299,25 @@ func writeResultToFiles(resultChan chan Result, wg *sync.WaitGroup, programArgs 
 		} else {
 			result := <-resultChan
 			savedResults += 1
+			percent := float32(savedResults) / float32(targetsCount) * 100
 			switch result.result {
 			case ResultValid:
-				fmt.Printf("%v [%.4f%%] %v:%v\n", colfmt.good.Sprint("GOOD"), float32(savedResults)/float32(targetsCount), result.host, result.port)
+				fmt.Printf("%v [%.2f%%] %v:%v\n", colfmt.good.Sprint("GOOD"), percent, result.host, result.port)
 				if isGoodFileUse {
 					addStringToFile(*programArgs.goodfile, fmt.Sprintf("%v:%v\n", result.host, result.port))
 				}
 			case ResultInvalid:
-				fmt.Printf("%v [%.4f%%] %v:%v\n", colfmt.bad.Sprint(" BAD"), float32(savedResults)/float32(targetsCount), result.host, result.port)
+				fmt.Printf("%v [%.2f%%] %v:%v\n", colfmt.bad.Sprint(" BAD"), percent, result.host, result.port)
 				if isBadFileUse {
 					addStringToFile(*programArgs.badfile, fmt.Sprintf("%v:%v\n", result.host, result.port))
 				}
 			case ResultErr:
-				fmt.Printf("%v [%.4f%%] %v:%v\n", colfmt.err.Sprint("*ERR"), float32(savedResults)/float32(targetsCount), result.host, result.port)
+				fmt.Printf("%v [%.2f%%] %v:%v\n", colfmt.err.Sprint("*ERR"), percent, result.host, result.port)
 				if isErrFileUse {
 					addStringToFile(*programArgs.errfile, fmt.Sprintf("%v:%v\n", result.host, result.port))
 				}
 			case ResultUnknown:
-				fmt.Printf("%v [%.4f%%] %v:%v\n", colfmt.info.Sprint("UNWN"), float32(savedResults)/float32(targetsCount), result.host, result.port)
+				fmt.Printf("%v [%.2f%%] %v:%v\n", colfmt.info.Sprint("UNWN"), percent, result.host, result.port)
 				if isUnknownFileUse {
 					addStringToFile(*programArgs.unknownfile, fmt.Sprintf("%v:%v\n", result.host, result.port))
 				}
