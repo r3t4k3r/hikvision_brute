@@ -301,22 +301,22 @@ func writeResultToFiles(resultChan chan Result, wg *sync.WaitGroup, programArgs 
 			savedResults += 1
 			switch result.result {
 			case ResultValid:
-				fmt.Println(colfmt.good.Sprint("GOOD"), result.host, result.port)
+				fmt.Printf("%v [%v/%v] %v:%v\n", colfmt.good.Sprint("GOOD"), savedResults, targetsCount, result.host, result.port)
 				if isGoodFileUse {
 					addStringToFile(*programArgs.goodfile, fmt.Sprintf("%v:%v\n", result.host, result.port))
 				}
 			case ResultInvalid:
-				fmt.Println(colfmt.bad.Sprint("BAD"), result.host, result.port)
+				fmt.Printf("%v [%v/%v] %v:%v\n", colfmt.bad.Sprint(" BAD"), savedResults, targetsCount, result.host, result.port)
 				if isBadFileUse {
 					addStringToFile(*programArgs.badfile, fmt.Sprintf("%v:%v\n", result.host, result.port))
 				}
 			case ResultErr:
-				fmt.Println(colfmt.err.Sprint("*ERR*"), result.host, result.port)
+				fmt.Printf("%v [%v/%v] %v:%v\n", colfmt.err.Sprint("*ERR"), savedResults, targetsCount, result.host, result.port)
 				if isErrFileUse {
 					addStringToFile(*programArgs.errfile, fmt.Sprintf("%v:%v\n", result.host, result.port))
 				}
 			case ResultUnknown:
-				fmt.Println(colfmt.info.Sprint("UNKNOWN"), result.host, result.port)
+				fmt.Printf("%v [%v/%v] %v:%v\n", colfmt.info.Sprint("UNWN"), savedResults, targetsCount, result.host, result.port)
 				if isUnknownFileUse {
 					addStringToFile(*programArgs.unknownfile, fmt.Sprintf("%v:%v\n", result.host, result.port))
 				}
