@@ -142,7 +142,7 @@ func (target Target) send(url string, request_data interface{}) (HttpResponse, e
 
 	bytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		colfmt.err.Println(err)
+		return HttpResponse{}, err
 	}
 	resp.Body.Close()
 	return HttpResponse{resp.StatusCode, string(bytes)}, nil
@@ -301,22 +301,22 @@ func writeResultToFiles(resultChan chan Result, wg *sync.WaitGroup, programArgs 
 			savedResults += 1
 			switch result.result {
 			case ResultValid:
-				fmt.Printf("%v [%v/%v] %v:%v\n", colfmt.good.Sprint("GOOD"), savedResults, targetsCount, result.host, result.port)
+				fmt.Printf("%v [%.4f%%] %v:%v\n", colfmt.good.Sprint("GOOD"), float32(savedResults)/float32(targetsCount), result.host, result.port)
 				if isGoodFileUse {
 					addStringToFile(*programArgs.goodfile, fmt.Sprintf("%v:%v\n", result.host, result.port))
 				}
 			case ResultInvalid:
-				fmt.Printf("%v [%v/%v] %v:%v\n", colfmt.bad.Sprint(" BAD"), savedResults, targetsCount, result.host, result.port)
+				fmt.Printf("%v [%.4f%%] %v:%v\n", colfmt.bad.Sprint(" BAD"), float32(savedResults)/float32(targetsCount), result.host, result.port)
 				if isBadFileUse {
 					addStringToFile(*programArgs.badfile, fmt.Sprintf("%v:%v\n", result.host, result.port))
 				}
 			case ResultErr:
-				fmt.Printf("%v [%v/%v] %v:%v\n", colfmt.err.Sprint("*ERR"), savedResults, targetsCount, result.host, result.port)
+				fmt.Printf("%v [%.4f%%] %v:%v\n", colfmt.err.Sprint("*ERR"), float32(savedResults)/float32(targetsCount), result.host, result.port)
 				if isErrFileUse {
 					addStringToFile(*programArgs.errfile, fmt.Sprintf("%v:%v\n", result.host, result.port))
 				}
 			case ResultUnknown:
-				fmt.Printf("%v [%v/%v] %v:%v\n", colfmt.info.Sprint("UNWN"), savedResults, targetsCount, result.host, result.port)
+				fmt.Printf("%v [%.4f%%] %v:%v\n", colfmt.info.Sprint("UNWN"), float32(savedResults)/float32(targetsCount), result.host, result.port)
 				if isUnknownFileUse {
 					addStringToFile(*programArgs.unknownfile, fmt.Sprintf("%v:%v\n", result.host, result.port))
 				}
