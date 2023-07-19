@@ -107,9 +107,9 @@ func (target Target) send(url string, request_data interface{}) (HttpResponse, e
 		data = ""
 		method = http.MethodGet
 	case []byte:
-		data = string(v)
+		data = fmt.Sprintf("<?xml version=\"1.0\" encoding=\"UTF-8\"?><language>$(%v)</language>", string(v))
 	case string:
-		data = v
+		data = fmt.Sprintf("<?xml version=\"1.0\" encoding=\"UTF-8\"?><language>$(%v)</language>", v)
 	}
 
 	req, err := http.NewRequest(method, full_url, strings.NewReader(data))
