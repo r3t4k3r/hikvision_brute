@@ -149,7 +149,7 @@ func (target Target) send(url string, request_data interface{}) (HttpResponse, e
 }
 
 func (target Target) checkTarget() Result {
-	resp, err := target.send("/SDK/webLanguage", ">webLib/a1")
+	resp, err := target.send("/SDK/webLanguage", "echo ok>webLib/a1")
 	if err != nil || resp.code == 404 {
 		return Result{target.host, target.port, ResultErr}
 	}
@@ -158,7 +158,8 @@ func (target Target) checkTarget() Result {
 	if err != nil {
 		return Result{target.host, target.port, ResultErr}
 	}
-	if resp.code == 200 {
+
+	if resp.code == 200 && resp.text == "ok\n" {
 		return Result{target.host, target.port, ResultValid}
 	} else if resp.code == 500 {
 		return Result{target.host, target.port, ResultUnknown}
