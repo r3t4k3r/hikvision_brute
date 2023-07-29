@@ -417,6 +417,7 @@ func main() {
 	client1 = &http.Client{
 		Timeout: time.Duration(*programArgs.timeout) * time.Second,
 		Transport: &http.Transport{
+			DisableKeepAlives: true,
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
 				VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
@@ -429,6 +430,7 @@ func main() {
 	client2 = &http.Client{
 		Timeout: time.Duration(*programArgs.timeout+10) * time.Second,
 		Transport: &http.Transport{
+			DisableKeepAlives: true,
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
 				VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
